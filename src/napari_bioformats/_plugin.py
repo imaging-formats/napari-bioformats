@@ -79,6 +79,7 @@ def _reader_function(path: PathOrPaths) -> list[LayerData]:
             "channel_axis": channel_axis,
             "name": f"{fname} (Series {i})",
             "scale": scale,
+            "metadata": {"ome_types": ome_meta},
         }
 
         layers.append((data, kwargs, "image"))
