@@ -52,24 +52,33 @@ def _reader_function(path: PathOrPaths) -> list[LayerData]:
             data: Any = [
                 series.as_array(resolution=r) for r in range(series.resolution_count)
             ]
-            ndim = data[0].ndim
         else:
             data = series.as_array()
-            ndim = data.ndim
 
-        scale = [1] * (ndim - 1)
+        # data is TCZYX (or TCZYXS for rgb); napari doesn't take a scale for the
+        # rgb axis, so these always have one entry per TCZYX axis.
+        axis_labels = list("tczyx")
+        scale = [1.0] * 5
+        units = ["pixel"] * 5
         try:
             pixels = ome_meta.images[i].pixels
-            z, y, x = (
-                getattr(pixels, f"physical_size_{dim}", None) or 1
-                for dim in ("z", "y", "x")
-            )
-            scale[-3:] = (z, y, x)  # prolly wrong for rgb...
+            for ax, dim in enumerate("zyx", start=2):
+                size = getattr(pixels, f"physical_size_{dim}", None)
+                unit = getattr(pixels, f"physical_size_{dim}_unit", None)
+                if size:
+                    scale[ax] = size
+                    # ome-types defaults the unit to µm even when size is unset,
+                    # so only trust it when there is a size.
+                    # "reference frame" is the one OME length unit pint rejects
+                    if unit is not None and unit.value != "reference frame":
+                        units[ax] = unit.value
         except (IndexError, AttributeError):
             pass
 
         if split_channels:
+            axis_labels.pop(1)
             scale.pop(1)
+            units.pop(1)
             channel_axis = 1
         else:
             channel_axis = None
@@ -78,7 +87,9 @@ def _reader_function(path: PathOrPaths) -> list[LayerData]:
             "rgb": series.is_rgb,
             "channel_axis": channel_axis,
             "name": f"{fname} (Series {i})",
+            "axis_labels": axis_labels,
             "scale": scale,
+            "units": units,
             "metadata": {"ome_types": ome_meta},
         }
 

@@ -113,6 +113,7 @@ filterwarnings = [
     "error",
     "ignore:Failing to pass a value to the 'type_params' parameter",
     "ignore:Failed to retrieve OME XML:RuntimeWarning",
+    "ignore:`json_encoders` is deprecated",  # from napari internals w/ pydantic>=2.13
 ]
 
 # https://coverage.readthedocs.io/
